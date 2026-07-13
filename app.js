@@ -53,26 +53,62 @@
   };
 
   function getTargetDate() {
-    // Build target in Pacific by formatting parts and parsing with offset helper
-    const probe = new Date(Date.UTC(EVENT_YEAR, EVENT_MONTH, EVENT_DAY, 12, 0, 0));
-    const parts = new Intl.DateTimeFormat("en-US", {
+    // 9:45 AM on July 15 in America/Los_Angeles (PDT = UTC-7 in July).
+    // Resolve wall-clock time via Intl instead of parsing offset strings, which
+    // breaks in Safari and produces NaN countdowns.
+    const desired = {
+      year: EVENT_YEAR,
+      month: EVENT_MONTH + 1,
+      day: EVENT_DAY,
+      hour: EVENT_HOUR,
+      minute: EVENT_MINUTE,
+    };
+
+    let guess = Date.UTC(EVENT_YEAR, EVENT_MONTH, EVENT_DAY, EVENT_HOUR + 7, EVENT_MINUTE, 0);
+    const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: TZ,
-      timeZoneName: "shortOffset",
-    }).formatToParts(probe);
-    const offsetPart = parts.find((p) => p.type === "timeZoneName");
-    const offsetStr = offsetPart ? offsetPart.value.replace("GMT", "") : "-07:00";
-    const padded = offsetStr.includes(":") ? offsetStr : offsetStr + ":00";
-    const sign = padded.startsWith("-") ? "-" : "+";
-    const nums = padded.replace(/[^\d:]/g, "");
-    const iso = `${EVENT_YEAR}-07-15T09:45:00${sign}${nums}`;
-    return new Date(iso);
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+    });
+
+    for (let i = 0; i < 6; i++) {
+      const parts = formatter.formatToParts(new Date(guess));
+      const part = (type) => Number(parts.find((p) => p.type === type).value);
+      const got = {
+        year: part("year"),
+        month: part("month"),
+        day: part("day"),
+        hour: part("hour") % 24,
+        minute: part("minute"),
+      };
+
+      const diffMinutes =
+        (desired.year - got.year) * 525600 +
+        (desired.month - got.month) * 43200 +
+        (desired.day - got.day) * 1440 +
+        (desired.hour - got.hour) * 60 +
+        (desired.minute - got.minute);
+
+      if (diffMinutes === 0) {
+        return new Date(guess);
+      }
+      guess += diffMinutes * 60 * 1000;
+    }
+
+    // Fallback: July is always PDT (UTC-7)
+    return new Date(`${EVENT_YEAR}-07-15T09:45:00-07:00`);
   }
 
   const TARGET = getTargetDate();
   const START_HYPE = Date.now();
 
   function pad(n) {
-    return String(n).padStart(2, "0");
+    if (!Number.isFinite(n) || n < 0) return "00";
+    return String(Math.floor(n)).padStart(2, "0");
   }
 
   function randomFrom(arr) {
@@ -96,7 +132,11 @@
   }
 
   function getRemaining() {
-    const diff = TARGET.getTime() - Date.now();
+    const targetMs = TARGET.getTime();
+    if (!Number.isFinite(targetMs)) {
+      return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
+    }
+    const diff = targetMs - Date.now();
     if (diff <= 0) {
       return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
     }
@@ -168,6 +208,7 @@
   }
 
   function initSparkles() {
+    if (!els.sparkleLayer) return;
     const emojis = ["✨", "⭐", "💫", "🌟", "✦"];
     for (let i = 0; i < 24; i++) {
       const s = document.createElement("span");
