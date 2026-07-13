@@ -32,9 +32,7 @@
     hoursFun: $("hours-fun"),
     minutesFun: $("minutes-fun"),
     secondsFun: $("seconds-fun"),
-    celebrationOverlay: $("celebration-overlay"),
     sparkleLayer: $("sparkle-layer"),
-    confettiCanvas: $("confetti-canvas"),
   };
 
   let soundEnabled = true;
@@ -182,88 +180,6 @@
     }
   }
 
-  function initConfetti() {
-    var canvas = els.confettiCanvas;
-    if (!canvas || !canvas.getContext) {
-      return { burst: function () {}, partyMode: function () {} };
-    }
-
-    var ctx = canvas.getContext("2d");
-    var particles = [];
-    var running = false;
-
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-
-    resize();
-    window.addEventListener("resize", resize);
-
-    function spawn(count) {
-      var colors = ["#ffd700", "#ff3d9a", "#00e5ff", "#b8ff3c", "#ffffff"];
-      for (var i = 0; i < count; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: -20 - Math.random() * canvas.height * 0.5,
-          w: 6 + Math.random() * 8,
-          h: 4 + Math.random() * 6,
-          color: randomFrom(colors),
-          vx: (Math.random() - 0.5) * 4,
-          vy: 2 + Math.random() * 6,
-          rot: Math.random() * 360,
-          vr: (Math.random() - 0.5) * 12,
-        });
-      }
-    }
-
-    function frame() {
-      if (!running && particles.length === 0) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      var next = [];
-      for (var i = 0; i < particles.length; i++) {
-        var p = particles[i];
-        if (p.y < canvas.height + 40) next.push(p);
-      }
-      particles = next;
-      for (var j = 0; j < particles.length; j++) {
-        var part = particles[j];
-        part.x += part.vx;
-        part.y += part.vy;
-        part.vy += 0.08;
-        part.rot += part.vr;
-        ctx.save();
-        ctx.translate(part.x, part.y);
-        ctx.rotate((part.rot * Math.PI) / 180);
-        ctx.fillStyle = part.color;
-        ctx.fillRect(-part.w / 2, -part.h / 2, part.w, part.h);
-        ctx.restore();
-      }
-      if (running || particles.length > 0) {
-        requestAnimationFrame(frame);
-      }
-    }
-
-    return {
-      burst: function (intense) {
-        spawn(intense ? 180 : 60);
-        if (!running) {
-          running = true;
-          frame();
-        }
-      },
-      partyMode: function () {
-        running = true;
-        setInterval(function () {
-          spawn(40);
-        }, 400);
-        frame();
-      },
-    };
-  }
-
-  var confetti = initConfetti();
-
   function startParty() {
     if (partyStarted) return;
     partyStarted = true;
@@ -281,15 +197,7 @@
     if (els.hypePercent) els.hypePercent.textContent = "100%";
     if (els.statExcitement) els.statExcitement.textContent = "∞%";
     if (els.statRawSeconds) els.statRawSeconds.textContent = "0 — PARTY TIME";
-    if (els.celebrationOverlay) {
-      els.celebrationOverlay.hidden = false;
-      setTimeout(function () {
-        els.celebrationOverlay.hidden = true;
-      }, 900);
-    }
     playPartyFanfare();
-    confetti.burst(true);
-    confetti.partyMode();
   }
 
   var lastSecond = -1;
@@ -342,7 +250,6 @@
 
   if (els.partyBoost) {
     els.partyBoost.addEventListener("click", function () {
-      confetti.burst(false);
       if (els.statExcitement) {
         els.statExcitement.textContent = 900 + Math.floor(Math.random() * 99) + "%";
       }
@@ -355,7 +262,6 @@
   if (els.rsvpBtn) {
     els.rsvpBtn.addEventListener("click", function () {
       if (els.rsvpMsg) els.rsvpMsg.hidden = false;
-      confetti.burst(false);
     });
   }
 
