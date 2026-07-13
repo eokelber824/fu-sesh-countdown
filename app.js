@@ -1,16 +1,13 @@
 (function () {
   "use strict";
 
-  // July 15, 2026 at 9:45 AM Pacific (America/Los_Angeles)
-  const EVENT_YEAR = 2026;
-  const EVENT_MONTH = 6; // July (0-indexed)
-  const EVENT_DAY = 15;
-  const EVENT_HOUR = 9;
-  const EVENT_MINUTE = 45;
+  // July 15, 2026 at 9:45 AM California time (PDT, UTC-7) = 16:45 UTC
+  // Single fixed instant — same countdown for everyone, everywhere.
+  const TARGET_MS = 1784133900000;
+  const START_HYPE = Date.now();
 
   const TITLE_COUNTDOWN = "🎉🥳🎉 Countdown till last Fu Sesh 🎉🥳🎉";
   const TITLE_PARTY = "WooHooo time to party with FU";
-  const TZ = "America/Los_Angeles";
 
   const $ = (id) => document.getElementById(id);
 
@@ -21,6 +18,7 @@
     seconds: $("seconds"),
     mainTitle: $("main-title"),
     mainSubtitle: $("main-subtitle"),
+    localEventTime: $("local-event-time"),
     hypeMeter: $("hype-meter"),
     hypePercent: $("hype-percent"),
     statRawSeconds: $("stat-raw-seconds"),
@@ -30,7 +28,6 @@
     partyBoost: $("party-boost"),
     rsvpBtn: $("rsvp-btn"),
     rsvpMsg: $("rsvp-msg"),
-    countdown: $("countdown"),
     daysFun: $("days-fun"),
     hoursFun: $("hours-fun"),
     minutesFun: $("minutes-fun"),
@@ -43,7 +40,6 @@
   let soundEnabled = true;
   let partyStarted = false;
   let audioCtx = null;
-  let confettiAnim = null;
 
   const funLabels = {
     days: ["of anticipation", "until glory", "of Fu waiting", "of destiny"],
@@ -52,117 +48,80 @@
     seconds: ["until destiny", "tick tock", "so close", "HERE WE GO"],
   };
 
-  function getTargetDate() {
-    // 9:45 AM on July 15 in America/Los_Angeles (PDT = UTC-7 in July).
-    // Resolve wall-clock time via Intl instead of parsing offset strings, which
-    // breaks in Safari and produces NaN countdowns.
-    const desired = {
-      year: EVENT_YEAR,
-      month: EVENT_MONTH + 1,
-      day: EVENT_DAY,
-      hour: EVENT_HOUR,
-      minute: EVENT_MINUTE,
-    };
-
-    let guess = Date.UTC(EVENT_YEAR, EVENT_MONTH, EVENT_DAY, EVENT_HOUR + 7, EVENT_MINUTE, 0);
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: TZ,
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      hour12: false,
-    });
-
-    for (let i = 0; i < 6; i++) {
-      const parts = formatter.formatToParts(new Date(guess));
-      const part = (type) => Number(parts.find((p) => p.type === type).value);
-      const got = {
-        year: part("year"),
-        month: part("month"),
-        day: part("day"),
-        hour: part("hour") % 24,
-        minute: part("minute"),
-      };
-
-      const diffMinutes =
-        (desired.year - got.year) * 525600 +
-        (desired.month - got.month) * 43200 +
-        (desired.day - got.day) * 1440 +
-        (desired.hour - got.hour) * 60 +
-        (desired.minute - got.minute);
-
-      if (diffMinutes === 0) {
-        return new Date(guess);
-      }
-      guess += diffMinutes * 60 * 1000;
-    }
-
-    // Fallback: July is always PDT (UTC-7)
-    return new Date(`${EVENT_YEAR}-07-15T09:45:00-07:00`);
-  }
-
-  const TARGET = getTargetDate();
-  const START_HYPE = Date.now();
-
   function pad(n) {
-    if (!Number.isFinite(n) || n < 0) return "00";
-    return String(Math.floor(n)).padStart(2, "0");
+    var num = Number(n);
+    if (isNaN(num) || num < 0) return "00";
+    return (num < 10 ? "0" : "") + Math.floor(num);
   }
 
   function randomFrom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
+  function formatLocalTime(ms) {
+    try {
+      return new Date(ms).toLocaleString(undefined, {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      });
+    } catch (e) {
+      return new Date(ms).toString();
+    }
+  }
+
+  function updateLocalEventTime() {
+    if (!els.localEventTime) return;
+    els.localEventTime.textContent =
+      "Where you are, that's " + formatLocalTime(TARGET_MS);
+  }
+
   function updateFooterTicker() {
-    const now = new Date();
-    const pt = now.toLocaleString("en-US", {
-      timeZone: TZ,
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      second: "2-digit",
-      timeZoneName: "short",
-    });
-    els.footerTicker.textContent = `Pacific Time Now: ${pt} · Event locked to July 15, 2026 9:45 AM PT`;
+    if (!els.footerTicker) return;
+    var nowText = formatLocalTime(Date.now());
+    var eventText = formatLocalTime(TARGET_MS);
+    els.footerTicker.textContent =
+      "Your time now: " + nowText + " · Party starts: " + eventText;
   }
 
   function getRemaining() {
-    const targetMs = TARGET.getTime();
-    if (!Number.isFinite(targetMs)) {
-      return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
-    }
-    const diff = targetMs - Date.now();
+    var diff = TARGET_MS - Date.now();
     if (diff <= 0) {
       return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 };
     }
-    const seconds = Math.floor(diff / 1000);
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return { total: diff, days, hours, minutes, seconds: secs };
+    var totalSeconds = Math.floor(diff / 1000);
+    var days = Math.floor(totalSeconds / 86400);
+    var hours = Math.floor((totalSeconds % 86400) / 3600);
+    var minutes = Math.floor((totalSeconds % 3600) / 60);
+    var seconds = totalSeconds % 60;
+    return { total: diff, days: days, hours: hours, minutes: minutes, seconds: seconds };
   }
 
-  function updateHypeMeter(remaining) {
-    const totalSpan = TARGET.getTime() - START_HYPE;
-    const elapsed = Date.now() - START_HYPE;
-    const base = Math.min(99, Math.max(1, Math.round((elapsed / totalSpan) * 100)));
-    const jitter = partyStarted ? 100 : Math.min(99, base + Math.floor(Math.random() * 8));
+  function updateHypeMeter() {
+    if (!els.hypeMeter || !els.hypePercent) return;
+    var totalSpan = TARGET_MS - START_HYPE;
+    var elapsed = Date.now() - START_HYPE;
+    var base = 50;
+    if (totalSpan > 0) {
+      base = Math.min(99, Math.max(1, Math.round((elapsed / totalSpan) * 100)));
+    }
+    var jitter = partyStarted ? 100 : Math.min(99, base + Math.floor(Math.random() * 8));
     els.hypeMeter.value = jitter;
-    els.hypePercent.textContent = `${jitter}%`;
+    els.hypePercent.textContent = jitter + "%";
   }
 
   function tickUnit(el) {
-    if (!el) return;
-    const unit = el.closest(".countdown__unit");
+    if (!el || !el.closest) return;
+    var unit = el.closest(".countdown__unit");
     if (unit) {
       unit.classList.add("tick");
-      setTimeout(() => unit.classList.remove("tick"), 200);
+      setTimeout(function () {
+        unit.classList.remove("tick");
+      }, 200);
     }
   }
 
@@ -170,8 +129,8 @@
     if (!soundEnabled || partyStarted) return;
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.frequency.value = 520;
@@ -179,7 +138,7 @@
       osc.start();
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
       osc.stop(audioCtx.currentTime + 0.08);
-    } catch (_) {
+    } catch (e) {
       /* audio optional */
     }
   }
@@ -188,44 +147,50 @@
     if (!soundEnabled) return;
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const notes = [523, 659, 784, 1047, 784, 1047];
-      notes.forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = i % 2 === 0 ? "square" : "triangle";
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        const t = audioCtx.currentTime + i * 0.15;
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.12, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-        osc.start(t);
-        osc.stop(t + 0.25);
-      });
-    } catch (_) {
+      var notes = [523, 659, 784, 1047, 784, 1047];
+      for (var i = 0; i < notes.length; i++) {
+        (function (freq, idx) {
+          var osc = audioCtx.createOscillator();
+          var gain = audioCtx.createGain();
+          osc.type = idx % 2 === 0 ? "square" : "triangle";
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          var t = audioCtx.currentTime + idx * 0.15;
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.12, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          osc.start(t);
+          osc.stop(t + 0.25);
+        })(notes[i], i);
+      }
+    } catch (e) {
       /* audio optional */
     }
   }
 
   function initSparkles() {
     if (!els.sparkleLayer) return;
-    const emojis = ["✨", "⭐", "💫", "🌟", "✦"];
-    for (let i = 0; i < 24; i++) {
-      const s = document.createElement("span");
+    var emojis = ["✨", "⭐", "💫", "🌟", "✦"];
+    for (var i = 0; i < 24; i++) {
+      var s = document.createElement("span");
       s.className = "sparkle";
       s.textContent = randomFrom(emojis);
-      s.style.left = `${Math.random() * 100}%`;
-      s.style.animationDelay = `${Math.random() * 4}s`;
-      s.style.animationDuration = `${3 + Math.random() * 4}s`;
+      s.style.left = Math.random() * 100 + "%";
+      s.style.animationDelay = Math.random() * 4 + "s";
+      s.style.animationDuration = 3 + Math.random() * 4 + "s";
       els.sparkleLayer.appendChild(s);
     }
   }
 
   function initConfetti() {
-    const canvas = els.confettiCanvas;
-    const ctx = canvas.getContext("2d");
-    let particles = [];
-    let running = false;
+    var canvas = els.confettiCanvas;
+    if (!canvas || !canvas.getContext) {
+      return { burst: function () {}, partyMode: function () {} };
+    }
+
+    var ctx = canvas.getContext("2d");
+    var particles = [];
+    var running = false;
 
     function resize() {
       canvas.width = window.innerWidth;
@@ -236,8 +201,8 @@
     window.addEventListener("resize", resize);
 
     function spawn(count) {
-      const colors = ["#ffd700", "#ff3d9a", "#00e5ff", "#b8ff3c", "#ffffff"];
-      for (let i = 0; i < count; i++) {
+      var colors = ["#ffd700", "#ff3d9a", "#00e5ff", "#b8ff3c", "#ffffff"];
+      for (var i = 0; i < count; i++) {
         particles.push({
           x: Math.random() * canvas.width,
           y: -20 - Math.random() * canvas.height * 0.5,
@@ -255,133 +220,155 @@
     function frame() {
       if (!running && particles.length === 0) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles = particles.filter((p) => p.y < canvas.height + 40);
-      particles.forEach((p) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.08;
-        p.rot += p.vr;
+      var next = [];
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        if (p.y < canvas.height + 40) next.push(p);
+      }
+      particles = next;
+      for (var j = 0; j < particles.length; j++) {
+        var part = particles[j];
+        part.x += part.vx;
+        part.y += part.vy;
+        part.vy += 0.08;
+        part.rot += part.vr;
         ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.rot * Math.PI) / 180);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.translate(part.x, part.y);
+        ctx.rotate((part.rot * Math.PI) / 180);
+        ctx.fillStyle = part.color;
+        ctx.fillRect(-part.w / 2, -part.h / 2, part.w, part.h);
         ctx.restore();
-      });
+      }
       if (running || particles.length > 0) {
-        confettiAnim = requestAnimationFrame(frame);
+        requestAnimationFrame(frame);
       }
     }
 
     return {
-      burst(intense) {
+      burst: function (intense) {
         spawn(intense ? 180 : 60);
         if (!running) {
           running = true;
           frame();
         }
       },
-      partyMode() {
+      partyMode: function () {
         running = true;
-        const interval = setInterval(() => spawn(40), 400);
+        setInterval(function () {
+          spawn(40);
+        }, 400);
         frame();
-        return () => {
-          clearInterval(interval);
-          running = false;
-        };
       },
     };
   }
 
-  const confetti = initConfetti();
+  var confetti = initConfetti();
 
   function startParty() {
     if (partyStarted) return;
     partyStarted = true;
     document.body.classList.add("party-mode");
-    els.mainTitle.textContent = TITLE_PARTY;
-    els.mainSubtitle.innerHTML =
-      "🎊 <strong>THE WAIT IS OVER.</strong> 🎊<br><span class=\"tiny\">Official party status: ACTIVATED · Fu Sesh: LEGENDARY</span>";
-    els.days.textContent = "00";
-    els.hours.textContent = "00";
-    els.minutes.textContent = "00";
-    els.seconds.textContent = "00";
-    els.hypeMeter.value = 100;
-    els.hypePercent.textContent = "100%";
-    els.statExcitement.textContent = "∞%";
-    els.statRawSeconds.textContent = "0 — PARTY TIME";
-    els.celebrationOverlay.hidden = false;
-    setTimeout(() => {
-      els.celebrationOverlay.hidden = true;
-    }, 900);
+    if (els.mainTitle) els.mainTitle.textContent = TITLE_PARTY;
+    if (els.mainSubtitle) {
+      els.mainSubtitle.innerHTML =
+        "🎊 <strong>THE WAIT IS OVER.</strong> 🎊<br><span class=\"tiny\">Official party status: ACTIVATED · Fu Sesh: LEGENDARY</span>";
+    }
+    if (els.days) els.days.textContent = "00";
+    if (els.hours) els.hours.textContent = "00";
+    if (els.minutes) els.minutes.textContent = "00";
+    if (els.seconds) els.seconds.textContent = "00";
+    if (els.hypeMeter) els.hypeMeter.value = 100;
+    if (els.hypePercent) els.hypePercent.textContent = "100%";
+    if (els.statExcitement) els.statExcitement.textContent = "∞%";
+    if (els.statRawSeconds) els.statRawSeconds.textContent = "0 — PARTY TIME";
+    if (els.celebrationOverlay) {
+      els.celebrationOverlay.hidden = false;
+      setTimeout(function () {
+        els.celebrationOverlay.hidden = true;
+      }, 900);
+    }
     playPartyFanfare();
     confetti.burst(true);
     confetti.partyMode();
   }
 
-  let lastSecond = -1;
+  var lastSecond = -1;
 
   function updateCountdown() {
-    const r = getRemaining();
-    els.statRawSeconds.textContent = r.total > 0 ? Math.ceil(r.total / 1000).toLocaleString() : "0 — PARTY TIME";
+    var r = getRemaining();
+    if (els.statRawSeconds) {
+      els.statRawSeconds.textContent =
+        r.total > 0 ? String(Math.ceil(r.total / 1000)) : "0 — PARTY TIME";
+    }
 
     if (r.total <= 0) {
       startParty();
       return;
     }
 
-    els.days.textContent = pad(r.days);
-    els.hours.textContent = pad(r.hours);
-    els.minutes.textContent = pad(r.minutes);
-    els.seconds.textContent = pad(r.seconds);
+    if (els.days) els.days.textContent = pad(r.days);
+    if (els.hours) els.hours.textContent = pad(r.hours);
+    if (els.minutes) els.minutes.textContent = pad(r.minutes);
+    if (els.seconds) els.seconds.textContent = pad(r.seconds);
 
     if (r.seconds !== lastSecond) {
       lastSecond = r.seconds;
       tickUnit(els.seconds);
       playTick();
       if (r.seconds % 7 === 0) {
-        els.daysFun.textContent = randomFrom(funLabels.days);
-        els.hoursFun.textContent = randomFrom(funLabels.hours);
-        els.minutesFun.textContent = randomFrom(funLabels.minutes);
-        els.secondsFun.textContent = randomFrom(funLabels.seconds);
+        if (els.daysFun) els.daysFun.textContent = randomFrom(funLabels.days);
+        if (els.hoursFun) els.hoursFun.textContent = randomFrom(funLabels.hours);
+        if (els.minutesFun) els.minutesFun.textContent = randomFrom(funLabels.minutes);
+        if (els.secondsFun) els.secondsFun.textContent = randomFrom(funLabels.seconds);
       }
     }
 
-    updateHypeMeter(r);
-    els.statExcitement.textContent = `${847 + Math.floor(Math.random() * 50)}%`;
+    updateHypeMeter();
+    if (els.statExcitement) {
+      els.statExcitement.textContent = 847 + Math.floor(Math.random() * 50) + "%";
+    }
   }
 
-  els.soundToggle.addEventListener("click", () => {
-    soundEnabled = !soundEnabled;
-    els.soundToggle.setAttribute("aria-pressed", String(!soundEnabled));
-    els.soundToggle.textContent = soundEnabled ? "🔊 Sound: ON" : "🔇 Sound: OFF";
-    if (soundEnabled && audioCtx && audioCtx.state === "suspended") {
-      audioCtx.resume();
-    }
-  });
+  if (els.soundToggle) {
+    els.soundToggle.addEventListener("click", function () {
+      soundEnabled = !soundEnabled;
+      els.soundToggle.setAttribute("aria-pressed", String(!soundEnabled));
+      els.soundToggle.textContent = soundEnabled ? "🔊 Sound: ON" : "🔇 Sound: OFF";
+      if (soundEnabled && audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    });
+  }
 
-  els.partyBoost.addEventListener("click", () => {
-    confetti.burst(false);
-    els.statExcitement.textContent = `${900 + Math.floor(Math.random() * 99)}%`;
-    els.hypeMeter.value = 99;
-    els.hypePercent.textContent = "99%";
-    if (soundEnabled) playPartyFanfare();
-  });
+  if (els.partyBoost) {
+    els.partyBoost.addEventListener("click", function () {
+      confetti.burst(false);
+      if (els.statExcitement) {
+        els.statExcitement.textContent = 900 + Math.floor(Math.random() * 99) + "%";
+      }
+      if (els.hypeMeter) els.hypeMeter.value = 99;
+      if (els.hypePercent) els.hypePercent.textContent = "99%";
+      if (soundEnabled) playPartyFanfare();
+    });
+  }
 
-  els.rsvpBtn.addEventListener("click", () => {
-    els.rsvpMsg.hidden = false;
-    confetti.burst(false);
-  });
+  if (els.rsvpBtn) {
+    els.rsvpBtn.addEventListener("click", function () {
+      if (els.rsvpMsg) els.rsvpMsg.hidden = false;
+      confetti.burst(false);
+    });
+  }
 
   document.addEventListener(
     "click",
-    () => {
+    function () {
       if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
     },
     { once: true }
   );
 
   initSparkles();
+  updateLocalEventTime();
   updateFooterTicker();
   updateCountdown();
   setInterval(updateCountdown, 250);
