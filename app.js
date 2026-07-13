@@ -86,6 +86,25 @@
       "Your time now: " + nowText + " · Party starts: " + eventText;
   }
 
+  function fitTitleLine() {
+    var title = els.mainTitle;
+    if (!title || !title.parentElement) return;
+    var wrap = title.parentElement;
+    var maxSize = partyStarted ? 42 : 34;
+    var minSize = 11;
+    var size = maxSize;
+
+    title.style.whiteSpace = "nowrap";
+    title.style.display = "inline-block";
+    title.style.fontSize = size + "px";
+
+    var available = wrap.clientWidth;
+    while (title.scrollWidth > available && size > minSize) {
+      size -= 0.5;
+      title.style.fontSize = size + "px";
+    }
+  }
+
   function getRemaining() {
     var diff = TARGET_MS - Date.now();
     if (diff <= 0) {
@@ -277,6 +296,7 @@
     if (els.statRawSeconds) els.statRawSeconds.textContent = "0 — PARTY TIME";
     playPartyFanfare();
     confetti.burst(true);
+    fitTitleLine();
   }
 
   var lastSecond = -1;
@@ -355,6 +375,11 @@
   updateLocalEventTime();
   updateFooterTicker();
   updateCountdown();
+  fitTitleLine();
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(fitTitleLine);
+  }
+  window.addEventListener("resize", fitTitleLine);
   setInterval(updateCountdown, 250);
   setInterval(updateFooterTicker, 1000);
 })();

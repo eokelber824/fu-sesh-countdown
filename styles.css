@@ -179,23 +179,29 @@ main {
   50% { transform: scale(1.08); opacity: 1; }
 }
 
+.hero__title-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 0.75rem;
+  padding: 0 0.25rem;
+}
+
 .hero__title {
   font-family: "Bungee Shade", cursive;
-  font-size: clamp(0.58rem, 2.65vw, 2.2rem);
+  font-size: 1.25rem;
   line-height: 1.2;
-  margin: 0 auto 0.75rem;
-  padding: 0 0.5rem;
-  width: 100%;
-  max-width: 100%;
-  text-align: center;
+  margin: 0;
+  display: inline-block;
   white-space: nowrap;
+  text-align: center;
   text-shadow: 0 0 30px rgba(255, 61, 154, 0.6);
   animation: title-wiggle 3s ease-in-out infinite;
 }
 
 body.party-mode .hero__title {
   animation: title-party 0.5s ease-in-out infinite;
-  font-size: clamp(0.7rem, 3.5vw, 2.8rem);
   color: var(--gold);
 }
 
