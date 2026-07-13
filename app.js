@@ -32,7 +32,7 @@
     hoursFun: $("hours-fun"),
     minutesFun: $("minutes-fun"),
     secondsFun: $("seconds-fun"),
-    sparkleLayer: $("sparkle-layer"),
+    confettiCanvas: $("confetti-canvas"),
   };
 
   let soundEnabled = true;
@@ -166,19 +166,97 @@
     }
   }
 
-  function initSparkles() {
-    if (!els.sparkleLayer) return;
-    var emojis = ["✨", "⭐", "💫", "🌟", "✦"];
-    for (var i = 0; i < 24; i++) {
-      var s = document.createElement("span");
-      s.className = "sparkle";
-      s.textContent = randomFrom(emojis);
-      s.style.left = Math.random() * 100 + "%";
-      s.style.animationDelay = Math.random() * 4 + "s";
-      s.style.animationDuration = 3 + Math.random() * 4 + "s";
-      els.sparkleLayer.appendChild(s);
+  function initConfetti() {
+    var canvas = els.confettiCanvas;
+    if (!canvas || !canvas.getContext) {
+      return { burst: function () {} };
     }
+
+    var ctx = canvas.getContext("2d");
+    var particles = [];
+    var animId = null;
+    var cleanupTimer = null;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    function stopConfetti() {
+      if (animId) {
+        cancelAnimationFrame(animId);
+        animId = null;
+      }
+      if (cleanupTimer) {
+        clearTimeout(cleanupTimer);
+        cleanupTimer = null;
+      }
+      particles = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.display = "none";
+    }
+
+    function spawn(count) {
+      var colors = ["#ffd700", "#ff3d9a", "#00e5ff", "#b8ff3c", "#ffffff"];
+      var centerX = canvas.width / 2;
+      var centerY = canvas.height / 2;
+      for (var i = 0; i < count; i++) {
+        particles.push({
+          x: centerX + (Math.random() - 0.5) * 80,
+          y: centerY + (Math.random() - 0.5) * 80,
+          w: 6 + Math.random() * 8,
+          h: 4 + Math.random() * 6,
+          color: randomFrom(colors),
+          vx: (Math.random() - 0.5) * 10,
+          vy: -4 - Math.random() * 8,
+          rot: Math.random() * 360,
+          vr: (Math.random() - 0.5) * 12,
+        });
+      }
+    }
+
+    function frame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      var alive = [];
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15;
+        p.rot += p.vr;
+        if (p.y < canvas.height + 60 && p.x > -60 && p.x < canvas.width + 60) {
+          alive.push(p);
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        }
+      }
+      particles = alive;
+      if (particles.length > 0) {
+        animId = requestAnimationFrame(frame);
+      } else {
+        stopConfetti();
+      }
+    }
+
+    return {
+      burst: function (intense) {
+        stopConfetti();
+        canvas.style.display = "block";
+        spawn(intense ? 120 : 50);
+        animId = requestAnimationFrame(frame);
+        cleanupTimer = setTimeout(stopConfetti, 4000);
+      },
+    };
   }
+
+  var confetti = initConfetti();
 
   function startParty() {
     if (partyStarted) return;
@@ -198,6 +276,7 @@
     if (els.statExcitement) els.statExcitement.textContent = "∞%";
     if (els.statRawSeconds) els.statRawSeconds.textContent = "0 — PARTY TIME";
     playPartyFanfare();
+    confetti.burst(true);
   }
 
   var lastSecond = -1;
@@ -273,7 +352,6 @@
     { once: true }
   );
 
-  initSparkles();
   updateLocalEventTime();
   updateFooterTicker();
   updateCountdown();
