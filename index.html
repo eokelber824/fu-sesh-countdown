@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Official™ Countdown till last Fu Sesh — July 15, 2026 at 9:45 AM Pacific. RSVP not required but emotionally encouraged." />
+  <title>🎉 Countdown till last Fu Sesh 🎉</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee+Shade&family=Comic+Neue:wght@400;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="marquee-top" class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      <span>🎉 LAST FU SESH INCOMING 🥳 FU APPROVED THIS MESSAGE 🎉 DO NOT REFRESH OR TIME WILL SPEED UP 🥳 OFFICIAL UNOFFICIAL COUNTDOWN 🎉</span>
+      <span>🎉 LAST FU SESH INCOMING 🥳 FU APPROVED THIS MESSAGE 🎉 DO NOT REFRESH OR TIME WILL SPEED UP 🥳 OFFICIAL UNOFFICIAL COUNTDOWN 🎉</span>
+    </div>
+  </div>
+
+  <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+  <div id="sparkle-layer" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="badge-row">
+      <span class="badge">CERTIFIED FU EVENT™</span>
+      <span class="badge badge--pulse">PACIFIC TIME LOCKED</span>
+      <span class="badge">v2026.07.15-β</span>
+    </div>
+    <p class="pretitle">An unnecessarily elaborate production by the Department of Fu Studies</p>
+  </header>
+
+  <main>
+    <section class="hero" id="hero">
+      <div class="hero__frame">
+        <div class="photo-orbit" aria-hidden="true">
+          <span class="orbit-emoji">🎉</span>
+          <span class="orbit-emoji">🥳</span>
+          <span class="orbit-emoji">✨</span>
+          <span class="orbit-emoji">🎊</span>
+        </div>
+        <div class="photo-ring">
+          <img
+            src="https://coach.scienceofpeople.com/api/photo/fu-che"
+            alt="Portrait of Fu — guest of honor for the last Fu Sesh"
+            class="hero__photo"
+            width="280"
+            height="280"
+            loading="eager"
+          />
+        </div>
+        <div class="hero__halo" aria-hidden="true"></div>
+      </div>
+
+      <h1 class="hero__title" id="main-title">🎉🥳🎉 Countdown till last Fu Sesh 🎉🥳🎉</h1>
+      <p class="hero__subtitle" id="main-subtitle">
+        Target lock: <strong>Wednesday, July 15, 2026</strong> · <strong>9:45 AM PT</strong>
+        <br />
+        <span class="tiny">(That's America/Los_Angeles — daylight saving respected by law and vibes)</span>
+      </p>
+
+      <div class="countdown" id="countdown" role="timer" aria-live="polite" aria-atomic="true">
+        <div class="countdown__unit">
+          <span class="countdown__value" id="days">--</span>
+          <span class="countdown__label">Days</span>
+          <span class="countdown__micro" id="days-fun">of anticipation</span>
+        </div>
+        <div class="countdown__sep">:</div>
+        <div class="countdown__unit">
+          <span class="countdown__value" id="hours">--</span>
+          <span class="countdown__label">Hours</span>
+          <span class="countdown__micro" id="hours-fun">of hype</span>
+        </div>
+        <div class="countdown__sep">:</div>
+        <div class="countdown__unit">
+          <span class="countdown__value" id="minutes">--</span>
+          <span class="countdown__label">Minutes</span>
+          <span class="countdown__micro" id="minutes-fun">of Fu energy</span>
+        </div>
+        <div class="countdown__sep">:</div>
+        <div class="countdown__unit">
+          <span class="countdown__value" id="seconds">--</span>
+          <span class="countdown__label">Seconds</span>
+          <span class="countdown__micro" id="seconds-fun">until destiny</span>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <label for="hype-meter">Hype Meter™ (scientifically inaccurate)</label>
+        <progress id="hype-meter" max="100" value="0"></progress>
+        <span id="hype-percent">0%</span>
+      </div>
+
+      <div class="controls">
+        <button type="button" id="sound-toggle" class="btn btn--ghost" aria-pressed="false">
+          🔊 Sound: ON
+        </button>
+        <button type="button" id="party-boost" class="btn btn--primary">
+          ⚡ Inject Extra Hype
+        </button>
+      </div>
+    </section>
+
+    <section class="panel" id="stats-panel">
+      <h2>📊 Live Fu Metrics Dashboard</h2>
+      <div class="stats-grid">
+        <article class="stat-card">
+          <h3>Excitement Index</h3>
+          <p class="stat-value" id="stat-excitement">847%</p>
+          <p class="stat-note">Exceeds recommended levels</p>
+        </article>
+        <article class="stat-card">
+          <h3>Fu's Aura</h3>
+          <p class="stat-value" id="stat-aura">Radiant</p>
+          <p class="stat-note">Detected via proprietary vibes sensor</p>
+        </article>
+        <article class="stat-card">
+          <h3>Seconds Until Party</h3>
+          <p class="stat-value" id="stat-raw-seconds">—</p>
+          <p class="stat-note">Raw number for spreadsheet people</p>
+        </article>
+        <article class="stat-card">
+          <h3>Weather Forecast</h3>
+          <p class="stat-value" id="stat-weather">Party with a chance of FU</p>
+          <p class="stat-note">100% chance of celebration at zero</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel panel--agenda">
+      <h2>📅 Official Agenda (Subject to Fu)</h2>
+      <ol class="agenda">
+        <li><time>9:44 AM</time> — Pre-Fu stretching &amp; emotional preparation</li>
+        <li><time>9:45 AM</time> — <strong>THE LAST FU SESH BEGINS</strong> 🎉</li>
+        <li><time>9:45:01 AM</time> — WooHooo protocol activated</li>
+        <li><time>9:46 AM</time> — Mandatory smiling (non-negotiable)</li>
+        <li><time>∞</time> — Party with FU (duration: until memories are made)</li>
+      </ol>
+    </section>
+
+    <section class="panel">
+      <h2>💬 Testimonials From Totally Real People</h2>
+      <div class="testimonials">
+        <blockquote>
+          <p>"I've been refreshing this page since before it existed."</p>
+          <footer>— A Concerned Friend</footer>
+        </blockquote>
+        <blockquote>
+          <p>"Fu doesn't know about this website and that's what makes it special."</p>
+          <footer>— The Vibes Committee</footer>
+        </blockquote>
+        <blockquote>
+          <p>"9:45 AM PT is the only time that matters now."</p>
+          <footer>— Pacific Standard Feelings</footer>
+        </blockquote>
+      </div>
+    </section>
+
+    <section class="panel panel--rsvp">
+      <h2>📝 RSVP (Does Nothing But Feels Good)</h2>
+      <form id="fake-rsvp" onsubmit="return false;">
+        <label>
+          Your name
+          <input type="text" placeholder="Future party legend" />
+        </label>
+        <label>
+          Excitement level
+          <select>
+            <option>Maximum</option>
+            <option>Beyond Maximum</option>
+            <option>Illegal Levels of Hype</option>
+          </select>
+        </label>
+        <label>
+          Will you party with FU?
+          <select>
+            <option>Obviously yes</option>
+            <option>Yes but louder</option>
+            <option>I was born ready</option>
+          </select>
+        </label>
+        <button type="submit" class="btn btn--primary" id="rsvp-btn">Submit RSVP to the Void ✨</button>
+        <p id="rsvp-msg" class="rsvp-msg" hidden>RSVP received by the cloud. Fu has been notified spiritually.</p>
+      </form>
+    </section>
+
+    <section class="panel panel--faq">
+      <h2>❓ FAQ Nobody Asked For</h2>
+      <details open>
+        <summary>Is this the official last Fu Sesh?</summary>
+        <p>According to this website, which is a primary source of truth for Fu Sesh matters, yes.</p>
+      </details>
+      <details>
+        <summary>What happens when the timer hits zero?</summary>
+        <p>Confetti. Sound (unless you muted it). Text changes. The universe briefly aligns. Party with FU commences.</p>
+      </details>
+      <details>
+        <summary>Why so many unnecessary details?</summary>
+        <p>Because you asked for them. We delivered. You're welcome.</p>
+      </details>
+      <details>
+        <summary>Can I share this link?</summary>
+        <p>Yes. That is the entire point. Send it to everyone who needs to know about the last Fu Sesh.</p>
+      </details>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Last Fu Sesh Global Consortium · All Fu rights reserved ·</p>
+    <p class="footer-ticker" id="footer-ticker">Synchronizing with Pacific Time...</p>
+    <p class="footer-legal">This site is 100% serious about partying and 0% a legally binding commitment.</p>
+  </footer>
+
+  <div id="celebration-overlay" class="celebration-overlay" hidden aria-hidden="true">
+    <div class="celebration-overlay__burst">🎊</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
